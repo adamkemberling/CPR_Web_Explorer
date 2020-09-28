@@ -1,0 +1,26 @@
+---
+title: "Continuous Plankton Recorder Web Explorer App"
+author: "Adam A. Kemberling"
+date: "9/27/2020"
+output: github_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(gmRi)
+```
+
+# About the App
+
+This is repository is for the development and deployment of an R Shiny web application for the purpose of visualizing and exploring continuous plankton recorder (CPR) survey data.
+
+
+
+
+
+
+
+
+
+
