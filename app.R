@@ -39,8 +39,8 @@ theme_set(theme_bw() + theme(plot.background = element_rect(fill = "transparent"
 northeast <- read_sf(here::here("Data/rnatearth_ne_usa.geojson"))
 canada <- read_sf(here::here("Data/rnatearth_canada.geojson"))
 
-
-####  CPR Raw Data  ####
+####_________________####
+####  Load and Prep CPR Data  ####
 
 # Combined dataset from NOAA/SAHFOS, concentrations in common units: # / meters cubed
 cpr <- read_csv(here::here("Data/zooplankton_combined.csv"), 
@@ -117,7 +117,7 @@ taxa_names <- taxa_cols[which(names(taxa_list) %in% keepers$taxa)]
 display_names <- c(
     "Spatial Distribution" = "map_plot",
     "Abundance Timeline" = "timeline_plot",
-    #"Seasonal Variation" = "seasonal_spline",
+    "Seasonal Variation" = "seasonal_spline",
     "Seasonal Spline Residuals" = "resid_hist",
     "Anomaly timeline" = "anom_plot")
 
@@ -163,53 +163,10 @@ anomaly_list <- map(anomaly_list, function(x){
 # # Tester
 # anomaly_list$`calanus finmarchicus v-vi`$map_plot
 
-####  7. Histogram of residuals  ####
-anomaly_list <- map(anomaly_list, function(x){
-
-    residual_data <- tibble(`Spline Residuals` = x$spline_model$residuals)
-
-    x$resid_hist <- ggplot(residual_data) +
-        geom_histogram(aes(`Spline Residuals`), bins = 30, fill = gmri_cols("gmri blue")) +
-        geom_vline(xintercept = 0, linetype = 2, color = gmri_cols("orange"), size = 1)
-
-    return(x)
-
-
-})
-
-# # Test
-# anomaly_list$`calanus finmarchicus v-vi`$resid_hist
-
-
-####  8. Anomaly Timeseries  ####
-anomaly_list <- map(anomaly_list, function(x){
-
-    timeline_data <- x$period_summs %>%
-        mutate(
-            datebounds = factor(datebounds, levels = c("1-365", "0-92", "92-184", "184-276", "276-365")),
-            `Anomaly Direction` = ifelse(period_anom_mu > 0, "Positive Anomaly", "Negative Anomaly"))
-
-    x$anom_plot <- timeline_data %>%
-        ggplot(aes(year, period_anom_mu)) +
-        geom_hline(yintercept = 0, linetype = 2, color = "gray60") +
-        geom_smooth(method = "gam", size = 1, color = "black") +
-        geom_point(aes(color = `Anomaly Direction`), size = 1) +
-        scale_color_manual(values = c("Positive Anomaly" = as.character(gmri_cols("orange")),
-                                      "Negative Anomaly" = as.character(gmri_cols("gmri blue")))) +
-        facet_wrap(~datebounds, ncol = 2) +
-        labs(x = NULL, y = "Seasonal Anomaly Mean") +
-        guides(color = guide_legend(title.position = "top", title.hjust = 0.5)) +
-        theme(legend.position = "bottom")
-
-    return(x)
-
-
-})
 
 
 
-
-#### 9. Abundance Timelines  ####
+#### 7. Abundance Timelines  ####
 
 anomaly_list <- map(anomaly_list, function(x){
 
@@ -223,7 +180,9 @@ anomaly_list <- map(anomaly_list, function(x){
     x$timeline_plot <- timeline_data %>%
         ggplot(aes(date, abundance) ) +
         geom_point(color = gmri_cols("gmri blue", as_char = T), size = 1) +
-        geom_smooth(method = "gam", color = gmri_cols("orange", as_char = TRUE)) +
+        geom_smooth(method = "gam", 
+                    formula = y ~ s(x, bs = "cs"),
+                    color = gmri_cols("orange", as_char = TRUE)) +
         scale_y_log10(labels = scales::comma_format()) +
         labs(x = NULL, y = "Observed Abundance (individuals / cubic meter)")
 
@@ -234,6 +193,72 @@ anomaly_list <- map(anomaly_list, function(x){
 
 # # Test Plot
 # anomaly_list$`calanus finmarchicus v-vi`$timeline_plot
+
+
+
+
+#### 8. Seasonal Patterns  ####
+
+anomaly_list <- map(anomaly_list, function(x){
+    timeline_data <- x$cprdat_predicted %>%
+        mutate(
+            datebounds = factor(datebounds, levels = c("1-365", "0-92", "92-184", "184-276", "276-365")),
+            `Anomaly Direction` = ifelse(anomaly > 0, "Positive Anomaly", "Negative Anomaly"))
+    
+    # for GAM knots
+    season_bins <- 4
+    bin_splits <- c(seq(0,365, by = ceiling(365 / (season_bins))), 365)
+    
+    
+    # Seasonal Pattern
+    x$seasonal_spline <- timeline_data %>% 
+        ggplot(aes(jday, abundance)) +
+        geom_point(color = gmri_cols("gmri blue", as_char = T)) +
+        geom_smooth(method = "gam",
+                    formula = y ~  s(x, bs = "cc", k = 5),
+                   color = gmri_cols("orange", as_char = T),
+                    size = 2) +
+        scale_y_log10(labels = scales::comma_format()) +
+        labs(x = "Julian Day", y = "Concentration (# / cubic meter)")
+    
+    
+    ####  9. Anomaly Timeseries  ####
+    timeline_data <- x$period_summs %>%
+        mutate(
+            datebounds = factor(datebounds, levels = c("1-365", "0-92", "92-184", "184-276", "276-365")),
+            `Anomaly Direction` = ifelse(period_anom_mu > 0, "Positive Anomaly", "Negative Anomaly"))
+    
+    
+    x$anom_plot <- timeline_data %>%
+        ggplot(aes(year, period_anom_mu)) +
+        geom_hline(yintercept = 0, linetype = 2, color = "gray60") +
+        geom_smooth(method = "gam", 
+                    formula = y ~ s(x, bs = "cs"),
+                    size = 2, 
+                    color = "gray50") +
+        geom_point(aes(color = `Anomaly Direction`), size = 1) +
+        scale_color_manual(values = c("Positive Anomaly" = as.character(gmri_cols("orange")),
+                                      "Negative Anomaly" = as.character(gmri_cols("gmri blue")))) +
+        facet_wrap(~datebounds, ncol = 2) +
+        labs(x = NULL, y = "Seasonal Anomaly Mean") +
+        guides(color = guide_legend(title.position = "top", title.hjust = 0.5)) +
+        theme(legend.position = "bottom")
+    
+    
+    ####  10. Histogram of residuals  ####
+    residual_data <- tibble(`Spline Residuals` = x$spline_model$residuals)
+    
+    x$resid_hist <- ggplot(residual_data) +
+        geom_histogram(aes(`Spline Residuals`), bins = 30, fill = gmri_cols("gmri blue")) +
+        geom_vline(xintercept = 0, linetype = 2, color = gmri_cols("orange"), size = 2)
+    
+    return(x)
+    
+    
+})
+
+
+
 
 
 ####_________________####
@@ -262,10 +287,22 @@ ui <- fluidPage(
                 tags$h1("Exploring Zooplankton Distribution and Abundance Patterns"),
                 tags$h2("Continuous Plankton Recorder Survey: Gulf of Maine"),
                 tags$br(),
+                tags$h3(strong("About the Data:")),
                 tags$p("The Gulf of Maine Continuous Plankton Recorder Survey is a scientific resource
                        used to identify spatial and temporal patterns of zooplankton in near-surface waters (<50m).
                        The CPR sampler is towed behind a ship of opportunity several times a year. Transects extend
-                       from Nova Scotia to either Boston MS, or more recently Portland ME.")
+                       from Nova Scotia to either Boston MS, or more recently Portland ME. Data for the 
+                       years 1961 to 2013 were received through communications with NOAA scientists, 
+                       with data from 2014-2017 received through communication with SAHFOS. Once received, zooplankton 
+                       concentration data from both sources were converted to the same measurement units (number m-3), 
+                       and all differences/inconsistencies in taxon identification records were compared to ensure direct
+                       matches between taxon-stage groups. The two CPR datasets were then joined to create a complete 
+                       time-series covering the years 1961-2017."),
+                tags$h3(strong("Navigating the Displays:")),
+                tags$p("The CPR Web Explorer app has several display options for viewing spatial and 
+                       temporal variations in abundances for individual zooplankton taxa. To explore
+                       different patterns in the zooplankton data, begin by choosing a taxa for each plot,
+                       and the display for the data.")
                 ),
              column(1)
     ),
