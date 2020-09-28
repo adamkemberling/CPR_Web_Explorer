@@ -1,4 +1,5 @@
 ####  Helper Functions  ####
+library(tidyverse)
 
 #Set ggplot theme
 ggplot2::theme_set(ggplot2::theme_classic())
@@ -297,7 +298,7 @@ cpr_corr_plot <- function(corr_dataframe, period = "Q1", plot_style = "tall", ta
 cpr_spline_fun <- function(cpr_dat = cpr_data, spline_bins = 10, season_bins = 4, study_area = "GOM") {
   
   #Check Input dimensions are correct
-  if(ncol(cpr_dat) != 5) {return(print('dat format requires 5 columns: [year, jday, lat, lon, #]'))}
+  if(ncol(cpr_dat) != 5) {message('data format requires 5 columns: [year, jday, lat, lon, #]')}
   
   
   
@@ -428,7 +429,7 @@ cpr_spline_fun <- function(cpr_dat = cpr_data, spline_bins = 10, season_bins = 4
       period_anom_mu = mean(anomaly, na.rm = T),
       period_anom_sd = mean(anomaly, na.rm = T),
       period_anom_std = mean(rel_anomaly, na.rm = T),
-      period_anom_n = n() ) %>% 
+      period_anom_n = n()) %>% 
     ungroup() %>% 
     mutate(period = as.character(period))
   
