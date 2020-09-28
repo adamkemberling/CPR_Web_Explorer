@@ -6,12 +6,14 @@
 # Full time series a combination of NOAA and SAHFOS data products
 
 ####  Packages  ####
-library(shiny)
+library(rnaturalearth)
+library(lubridate)
 library(ggpmisc)
 library(mgcv)
-library(tidyverse)
 library(patchwork)
 library(sf)
+library(shiny)
+library(tidyverse)
 library(here)
 library(gmRi)
 
@@ -36,21 +38,20 @@ canada <- rnaturalearth::ne_states(country = "canada") %>% st_as_sfc(crs = 4326)
 ####  CPR Raw Data  ####
 
 # Combined dataset from NOAA/SAHFOS, concentrations in common units: # / meters cubed
-cpr <- read_csv(here("Data/zooplankton_combined.csv"), 
+cpr <- read_csv(here::here("Data/zooplankton_combined.csv"), 
                 guess_max = 1e6, col_types = cols())
 
 #eliminate sample_id column that is mixed in, and format the dates
 cpr <- cpr %>% 
     mutate(
         cal_date = as.POSIXct(str_c(year, month, day, sep = "/"), format = "%Y/%m/%d"),
-        jday = lubridate::yday(cal_date),
-        .before = `phytoplankton color index`) %>% 
+        jday = lubridate::yday(cal_date),) %>% 
     rename(
         lat = `latitude (degrees)`, 
         lon = `longitude (degrees)`) %>% 
-    mutate(lon = ifelse(lon > 0, lon * -1, lon))
-
-
+    mutate(lon = ifelse(lon > 0, lon * -1, lon)) %>% 
+    select(`Data Source`, cruise, station, year, month, day, hour, minute, lat, lon, cal_date, jday,
+           `phytoplankton color index`, everything())
 
 
 
@@ -66,19 +67,19 @@ names(taxa_cols) <- taxa_cols
 #Make a list with details on each taxa
 taxa_list <- map(taxa_cols, function(x){
     taxa_name <- sym(x)
-    taxa_subset <- cpr %>% 
+    taxa_subset <- cpr %>%
         select(year, jday, lat, lon, abundance = !!taxa_name)
-    
-})
+
+}) 
 
 
 
 
 ####  2. Calanus Test  ####
-calanus_anoms <- cpr_spline_fun(cpr_dat = taxa_list$`calanus i-iv`, 
-               spline_bins = 10, 
-               season_bins = 4, 
-               study_area = "GOM")
+# calanus_anoms <- cpr_spline_fun(cpr_dat = taxa_list$`calanus i-iv`,
+#                spline_bins = 10,
+#                season_bins = 4,
+#                study_area = "GOM")
 
 
 
@@ -108,18 +109,18 @@ fullts_taxa <- taxa_list[names(taxa_list) %in% keepers$taxa]
 taxa_names <- taxa_cols[which(names(taxa_list) %in% keepers$taxa)]
 
 # List of Display options for each
-display_names <- c("Abundance Timeline" = "timeline_plot", 
-                   "Spatial Distribution" = "map_plot", 
-                   "Seasonal Spline fit" = "resid_hist", 
+display_names <- c("Abundance Timeline" = "timeline_plot",
+                   "Spatial Distribution" = "map_plot",
+                   "Seasonal Spline fit" = "resid_hist",
                    "Anomaly timeline" = "anom_plot")
 
 
 
 ####  5. Calculate Detrended Abundances  ####
 anomaly_list <- map(.x = fullts_taxa,
-                    .f = cpr_spline_fun, 
-                    spline_bins = 10, 
-                    season_bins = 4, 
+                    .f = cpr_spline_fun,
+                    spline_bins = 10,
+                    season_bins = 4,
                     study_area = "GOM_new")
 
 # From there we have the:
@@ -130,11 +131,11 @@ anomaly_list <- map(.x = fullts_taxa,
 
 ####  6. Distribution Map  ####
 anomaly_list <- map(anomaly_list, function(x){
-    data <- x$cprdat_predicted %>% 
+    data <- x$cprdat_predicted %>%
         mutate(`Taxa Presence` = ifelse(abundance > 0, "Present", "Absent"))
     data_sf <- data %>% st_as_sf(coords = c("lon", "lat"), crs = 4326)
-    
-    x$map_plot <- ggplot() + 
+
+    x$map_plot <- ggplot() +
         geom_sf(data = filter(data_sf, `Taxa Presence` == "Present"), aes(shape = `Taxa Presence`, color = `Taxa Presence`), alpha = 0.8) +
         geom_sf(data = filter(data_sf, `Taxa Presence` == "Absent"), aes(shape = `Taxa Presence`, color = `Taxa Presence`), alpha = 0.6) +
         geom_sf(data = northeast) +
@@ -147,10 +148,10 @@ anomaly_list <- map(anomaly_list, function(x){
         theme_bw() +
         theme(legend.position = "bottom") +
         facet_wrap(~datebounds)
-    
+
     return(x)
-    
-    
+
+
 })
 
 # # Tester
@@ -158,16 +159,16 @@ anomaly_list <- map(anomaly_list, function(x){
 
 ####  7. Histogram of residuals  ####
 anomaly_list <- map(anomaly_list, function(x){
-    
-    residual_data <- tibble(`Spline Residuals` = x$spline_model$residuals) 
-    
-    x$resid_hist <- ggplot(residual_data) + 
+
+    residual_data <- tibble(`Spline Residuals` = x$spline_model$residuals)
+
+    x$resid_hist <- ggplot(residual_data) +
         geom_histogram(aes(`Spline Residuals`), bins = 30, fill = gmri_cols("gmri blue")) +
         geom_vline(xintercept = 0, linetype = 2, color = gmri_cols("orange"), size = 1)
-    
+
     return(x)
-    
-    
+
+
 })
 
 # # Test
@@ -176,54 +177,54 @@ anomaly_list <- map(anomaly_list, function(x){
 
 ####  8. Anomaly Timeseries  ####
 anomaly_list <- map(anomaly_list, function(x){
-    
-    timeline_data <- x$period_summs %>% 
+
+    timeline_data <- x$period_summs %>%
         mutate(
             datebounds = factor(datebounds, levels = c("1-365", "0-92", "92-184", "184-276", "276-365")),
             `Anomaly Direction` = ifelse(period_anom_mu > 0, "Positive Anomaly", "Negative Anomaly"))
-    
-    x$anom_plot <- timeline_data %>% 
+
+    x$anom_plot <- timeline_data %>%
         ggplot(aes(year, period_anom_mu)) +
         geom_hline(yintercept = 0, linetype = 2, color = "gray60") +
-        geom_line(aes(group = datebounds), size = 1, color = "lightblue") + 
-        geom_point(aes(color = `Anomaly Direction`), size = 1) + 
+        geom_line(aes(group = datebounds), size = 1, color = "lightblue") +
+        geom_point(aes(color = `Anomaly Direction`), size = 1) +
         scale_color_manual(values = c("Positive Anomaly" = as.character(gmri_cols("orange")),
                                       "Negative Anomaly" = as.character(gmri_cols("gmri blue")))) +
         facet_wrap(~datebounds, ncol = 2) +
         labs(x = NULL, y = "Seasonal Anomaly Mean")
-    
+
     return(x)
-    
-    
+
+
 })
 
 
 # Test
-anomaly_list$`calanus finmarchicus v-vi`$cprdat_predicted %>% 
+anomaly_list$`calanus finmarchicus v-vi`$cprdat_predicted %>%
     mutate(date = as.Date(str_c(year, "-01-01")),
            date = date + jday)
 
 #### 9. Abundance Timelines  ####
 
 anomaly_list <- map(anomaly_list, function(x){
-    
-    timeline_data <- x$cprdat_predicted %>% 
+
+    timeline_data <- x$cprdat_predicted %>%
         mutate(
             date = as.Date(str_c(year, "-01-01")),
             date = date + jday,
             datebounds = factor(datebounds, levels = c("1-365", "0-92", "92-184", "184-276", "276-365"))
         )
-    
-    x$timeline_plot <- timeline_data %>% 
+
+    x$timeline_plot <- timeline_data %>%
         ggplot(aes(date, abundance) ) +
-        geom_point(color = gmri_cols("gmri blue", as_char = T), size = 1) + 
+        geom_point(color = gmri_cols("gmri blue", as_char = T), size = 1) +
         geom_smooth(method = "gam", color = gmri_cols("orange", as_char = TRUE)) +
         scale_y_log10(labels = scales::comma_format()) +
         labs(x = NULL, y = "Observed Abundance (individuals / cubic meter)")
-    
+
     return(x)
-    
-    
+
+
 })
 
 anomaly_list$`calanus finmarchicus v-vi`$timeline_plot
@@ -232,12 +233,12 @@ anomaly_list$`calanus finmarchicus v-vi`$timeline_plot
 ####_________________####
 ####  Define UI ####
 ui <- fluidPage(
-    
-    ####  Page Details  ####
-    title = "CPR Explorer", 
-    theme = "styles/gmri_rmarkdown.css", 
-    
-    ####  Application Banner  ####
+
+    ####  1. Page Details  ####
+    title = "CPR Explorer",
+    theme = "styles/gmri_rmarkdown.css",
+
+    ####  2. Application Banner with Logo  ####
     fluidRow(style = "padding: 20px;",
 
              column(12,
@@ -245,10 +246,10 @@ ui <- fluidPage(
              )
     ),
 
-    ####  Title and Introduction  ####
-    
+    ####  3. Title and Introduction  ####
+
     fluidRow(style = 'padding-bottom: 20px;',
-             
+
              #Buffer column
              column(1),
              column(width = 10,
@@ -257,64 +258,64 @@ ui <- fluidPage(
                 tags$br(),
                 tags$p("The Gulf of Maine Continuous Plankton Recorder Survey is a scientific resource
                        used to identify spatial and temporal patterns of zooplankton in near-surface waters (<50m).
-                       The CPR sampler is towed behind a ship of opportunity several times a year. Transects extend 
+                       The CPR sampler is towed behind a ship of opportunity several times a year. Transects extend
                        from Nova Scotia to either Boston MS, or more recently Portland ME.")
                 ),
              column(1)
     ),
-    
+
     ####  Selection Options  ####
     fluidRow(style = 'padding-bottom: 20px;',
-             
+
              #Buffer column
              column(1),
              column(4,
                     style = "color: black",
                     align = "left",
-                    
-                    
+
+
                     # Taxa 1 Selector
                     selectInput(inputId = "taxa1",
                                 label   = "1. Select a Taxa",
                                 choices = taxa_names),
-                    
+
                     # Buoy 1 Selector
                     selectInput(inputId = "display1",
                                 label   = "2. Select a Display",
                                 choices = display_names),
-                    
+
                     actionButton(inputId = "left_button", label = "Update Left-Side", icon("refresh"))
-                    
+
              ),
              column(2),
-             
+
              column(4,
                     style = "color: black",
                     align = "left",
-                    
-                    
+
+
                     # Taxa 2 Selector
                     selectInput(inputId = "taxa2",
                                 label   = "1. Select a Taxa",
                                 choices = taxa_names),
-                    
+
                     # Buoy 2 Selector
                     selectInput(inputId = "display2",
                                 label   = "2. Select a Display",
                                 choices = display_names),
-                    
+
                     actionButton(inputId = "right_button", label = "Update Right-Side", icon("refresh"))
-                    
+
              ),
-             
+
              column(1)
-             
-             
-             
-             
-             
+
+
+
+
+
     ),
-    
+
     ####  Plotting Space  ####
     fluidRow(
         column(width = 6,
@@ -335,16 +336,16 @@ ui <- fluidPage(
                               width = "auto")
                )
         )
-        
+
     ),
-    
+
     ####  Additional Comments  ####
     fluidRow(
         column(1),
         column(10,
                tags$strong("NOTE:"),
-               tags$p("The data and figures above are a product of CPR data collected from both NOAA 
-                       and the Sir Alister Hardy Foundation (SAHFOS). Pre-processing to common units, and consistent 
+               tags$p("The data and figures above are a product of CPR data collected from both NOAA
+                       and the Sir Alister Hardy Foundation (SAHFOS). Pre-processing to common units, and consistent
                        group classifications occurred prior to any plotting. Spatial extent was also limited to the
                        study area of the Gulf of Maine."),
                # Add footer with github info
@@ -356,8 +357,8 @@ ui <- fluidPage(
 ####_________________####
 ####  Define Server Logic  ####
 server <- function(input, output) {
-    
-    
+
+
     ####  Observe Left Side  ####
     observeEvent(input$left_button, {
         ####Left Side Plot  ####
@@ -375,11 +376,11 @@ server <- function(input, output) {
             anomaly_list[[input$taxa2]][input$display2]
         }, bg="transparent")
     })
-    
-    
-    
-    
+
+
+
+
 }
 
-# Run the application 
+#####  Run the application   ####
 shinyApp(ui = ui, server = server)
