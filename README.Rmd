@@ -15,6 +15,22 @@ library(gmRi)
 
 This is repository is for the development and deployment of an R Shiny web application for the purpose of visualizing and exploring continuous plankton recorder (CPR) survey data.
 
+Data for the years 1961 to 2013 were received through communications with NOAA scientists, with data from 2014-2017 received through communication with SAHFOS. Once received, zooplankton concentration data from both sources were converted to the same measurement units (number m-3), and all differences/inconsistencies in taxon identification records were compared to ensure direct matches between taxon-stage groups. The two CPR datasets were then joined to create a complete time-series covering the years 1961-2017.
+
+The CPR Web Explorer app has several display options for viewing spatial and temporal variations in abundances for individual zooplankton taxa. 
+
+## Spatial Distribution
+
+## Abundance Timelines
+
+## Seasonal Variation
+
+
+
+# Docker Implementation
+
+The CPR Web Explorer Application was developed in a docker environment to enable easy deployment and consistent performance. Details on the docker image configurations can be found in the `Dockerfile`.
+
 To build and run the docker image run the following in the terminal:
 
  > docker build --tag gmri/bashful-badger:1.0 .   

@@ -22,14 +22,13 @@ RUN install2.r --error \
     rgdal \
     rgeos \
     sf \
-    devtools \
-    rnaturalearth
+    devtools 
     
 
 # Attempt at Installing gmRi Package
 RUN R -e "devtools::install_github('gulfofmaine/gmri', upgrade = 'never')"
-RUN R -e "devtools::install_github('ropensci/rnaturalearthdata', upgrade = 'never')"
-RUN R -e "devtools::install_github('ropensci/rnaturalearthhires', upgrade = 'never')"
+# RUN R -e "devtools::install_github('ropensci/rnaturalearthdata', upgrade = 'never')"
+# RUN R -e "devtools::install_github('ropensci/rnaturalearthhires', upgrade = 'never')"
 
 # Shiny Server Customizations.
 COPY shiny-customized.config /etc/shiny-server/shiny-server.conf
