@@ -1,7 +1,7 @@
 ---
 title: "Continuous Plankton Recorder Web Explorer App"
 author: "Adam A. Kemberling"
-date: "9/27/2020"
+date: "`r Sys.Date()`"
 output: github_document
 ---
 
@@ -21,10 +21,15 @@ The CPR Web Explorer app has several display options for viewing spatial and tem
 
 ## Spatial Distribution
 
+Maps of spatial distributions of zooplankton densities are split into 91-day periods throughout the year. Points displayed indicate central coordinates of each 10nm transect. Only transects that occurred within the Gulf of Maine Study area are displayed..
+
 ## Abundance Timelines
+
+Abundance timelines display the measured concentrations of zooplankton throughout the survey period. Fit from a generalized additive model is overlayed to explore fluctuations in mean concentrations for the area.
 
 ## Seasonal Variation
 
+In order to estimate anomalies from a seasonal average generalized additive model with a cyclic basis function is fit on the abundance of zooplankton as predicted by the day of the year (Jan 1 = 1, Jan 2 = 2, etc.). Anomalies from these seasonal patterns are then interpreted as deviations from the expected pattern in abundance based on historic climate patterns. These are assumed to be static relationships that do not change over the period of the survey.
 
 
 # Docker Implementation
