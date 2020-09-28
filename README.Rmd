@@ -1,7 +1,7 @@
 ---
 title: "Continuous Plankton Recorder Web Explorer App"
 author: "Adam A. Kemberling"
-date: "9/27/2020"
+date: "`r Sys.Date()`"
 output: github_document
 ---
 
@@ -14,6 +14,27 @@ library(gmRi)
 # About the App
 
 This is repository is for the development and deployment of an R Shiny web application for the purpose of visualizing and exploring continuous plankton recorder (CPR) survey data.
+
+Data for the years 1961 to 2013 were received through communications with NOAA scientists, with data from 2014-2017 received through communication with SAHFOS. Once received, zooplankton concentration data from both sources were converted to the same measurement units (number m-3), and all differences/inconsistencies in taxon identification records were compared to ensure direct matches between taxon-stage groups. The two CPR datasets were then joined to create a complete time-series covering the years 1961-2017.
+
+The CPR Web Explorer app has several display options for viewing spatial and temporal variations in abundances for individual zooplankton taxa. 
+
+## Spatial Distribution
+
+Maps of spatial distributions of zooplankton densities are split into 91-day periods throughout the year. Points displayed indicate central coordinates of each 10nm transect. Only transects that occurred within the Gulf of Maine Study area are displayed..
+
+## Abundance Timelines
+
+Abundance timelines display the measured concentrations of zooplankton throughout the survey period. Fit from a generalized additive model is overlayed to explore fluctuations in mean concentrations for the area.
+
+## Seasonal Variation
+
+In order to estimate anomalies from a seasonal average generalized additive model with a cyclic basis function is fit on the abundance of zooplankton as predicted by the day of the year (Jan 1 = 1, Jan 2 = 2, etc.). Anomalies from these seasonal patterns are then interpreted as deviations from the expected pattern in abundance based on historic climate patterns. These are assumed to be static relationships that do not change over the period of the survey.
+
+
+# Docker Implementation
+
+The CPR Web Explorer Application was developed in a docker environment to enable easy deployment and consistent performance. Details on the docker image configurations can be found in the `Dockerfile`.
 
 To build and run the docker image run the following in the terminal:
 

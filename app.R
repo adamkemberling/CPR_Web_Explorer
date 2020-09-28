@@ -6,7 +6,6 @@
 # Full time series a combination of NOAA and SAHFOS data products
 
 ####  Packages  ####
-library(rnaturalearth)
 library(lubridate)
 library(ggpmisc)
 library(mgcv)
@@ -27,12 +26,18 @@ source(here::here("R/cpr_helper_funs.R"))
 gmRi::use_gmri_style_shiny(stylesheet = "gmri rmarkdown")
 
 #Set ggplot theme
-theme_set(theme_bw())
+theme_set(theme_bw() + theme(plot.background = element_rect(fill = "transparent"), 
+                             legend.box.background = element_rect(fill = "transparent")))
 
-# Coastlines
-northeast <- rnaturalearth::ne_states(country = "united states of america") %>% st_as_sfc(crs = 4326)
-canada <- rnaturalearth::ne_states(country = "canada") %>% st_as_sfc(crs = 4326)
+# Coastlines from rnaturalearth
+# northeast <- rnaturalearth::ne_states(country = "united states of america") %>% st_as_sfc(crs = 4326)
+# canada <- rnaturalearth::ne_states(country = "canada") %>% st_as_sfc(crs = 4326)
 
+# save them, load them from Data/
+# sf::write_sf(obj = northeast, dsn = here::here("Data/rnatearth_ne_usa.geojson"))
+# sf::write_sf(obj = canada, dsn = here::here("Data/rnatearth_canada.geojson"))
+northeast <- read_sf(here::here("Data/rnatearth_ne_usa.geojson"))
+canada <- read_sf(here::here("Data/rnatearth_canada.geojson"))
 
 
 ####  CPR Raw Data  ####
@@ -109,10 +114,12 @@ fullts_taxa <- taxa_list[names(taxa_list) %in% keepers$taxa]
 taxa_names <- taxa_cols[which(names(taxa_list) %in% keepers$taxa)]
 
 # List of Display options for each
-display_names <- c("Abundance Timeline" = "timeline_plot",
-                   "Spatial Distribution" = "map_plot",
-                   "Seasonal Spline fit" = "resid_hist",
-                   "Anomaly timeline" = "anom_plot")
+display_names <- c(
+    "Spatial Distribution" = "map_plot",
+    "Abundance Timeline" = "timeline_plot",
+    #"Seasonal Variation" = "seasonal_spline",
+    "Seasonal Spline Residuals" = "resid_hist",
+    "Anomaly timeline" = "anom_plot")
 
 
 
@@ -145,7 +152,6 @@ anomaly_list <- map(anomaly_list, function(x){
         guides(fill = guide_legend(title = "", label = FALSE),
                shape = guide_legend(title.position = "top", title.hjust = 0.5)) +
         coord_sf(xlim = c(-71,-64.8), ylim = c(41, 44.3)) +
-        theme_bw() +
         theme(legend.position = "bottom") +
         facet_wrap(~datebounds)
 
@@ -186,12 +192,14 @@ anomaly_list <- map(anomaly_list, function(x){
     x$anom_plot <- timeline_data %>%
         ggplot(aes(year, period_anom_mu)) +
         geom_hline(yintercept = 0, linetype = 2, color = "gray60") +
-        geom_line(aes(group = datebounds), size = 1, color = "lightblue") +
+        geom_smooth(method = "gam", size = 1, color = "black") +
         geom_point(aes(color = `Anomaly Direction`), size = 1) +
         scale_color_manual(values = c("Positive Anomaly" = as.character(gmri_cols("orange")),
                                       "Negative Anomaly" = as.character(gmri_cols("gmri blue")))) +
         facet_wrap(~datebounds, ncol = 2) +
-        labs(x = NULL, y = "Seasonal Anomaly Mean")
+        labs(x = NULL, y = "Seasonal Anomaly Mean") +
+        guides(color = guide_legend(title.position = "top", title.hjust = 0.5)) +
+        theme(legend.position = "bottom")
 
     return(x)
 
@@ -199,10 +207,7 @@ anomaly_list <- map(anomaly_list, function(x){
 })
 
 
-# Test
-anomaly_list$`calanus finmarchicus v-vi`$cprdat_predicted %>%
-    mutate(date = as.Date(str_c(year, "-01-01")),
-           date = date + jday)
+
 
 #### 9. Abundance Timelines  ####
 
@@ -227,7 +232,8 @@ anomaly_list <- map(anomaly_list, function(x){
 
 })
 
-anomaly_list$`calanus finmarchicus v-vi`$timeline_plot
+# # Test Plot
+# anomaly_list$`calanus finmarchicus v-vi`$timeline_plot
 
 
 ####_________________####
