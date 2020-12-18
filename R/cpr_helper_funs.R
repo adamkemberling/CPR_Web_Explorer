@@ -429,7 +429,8 @@ cpr_spline_fun <- function(cpr_dat = cpr_data, spline_bins = 10, season_bins = 4
       period_anom_mu = mean(anomaly, na.rm = T),
       period_anom_sd = mean(anomaly, na.rm = T),
       period_anom_std = mean(rel_anomaly, na.rm = T),
-      period_anom_n = n()) %>% 
+      period_anom_n = n(),
+      .groups = "keep") %>% 
     ungroup() %>% 
     mutate(period = as.character(period))
   
@@ -440,7 +441,8 @@ cpr_spline_fun <- function(cpr_dat = cpr_data, spline_bins = 10, season_bins = 4
       period_anom_mu = mean(anomaly, na.rm = T),
       period_anom_sd = mean(anomaly, na.rm = T),
       period_anom_std = mean(rel_anomaly, na.rm = T),
-      period_anom_n = n() ) %>% 
+      period_anom_n = n(),
+      .groups = "keep") %>% 
     mutate(period = "annual",
            datebounds = "1-365")
   
