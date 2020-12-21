@@ -327,7 +327,7 @@ anomaly_list <- map(anomaly_list, function(x){
         geom_point(data = daily_avg, aes(flat_date, mean_conc, color = "Daily Mean Abundance"), size = 1) +
         geom_smooth(method = "gam",
                     formula = y ~  s(x, bs = "cc", k = 10),
-                   color = gmri_cols("orange", as_char = T),
+                    color = gmri_cols("orange", as_char = T),
                     size = 2) +
         
         scale_y_log10(labels = scales::comma_format()) +
