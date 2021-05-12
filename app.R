@@ -123,11 +123,12 @@ taxa_names <- taxa_cols[which(names(taxa_list) %in% keepers$taxa)]
 
 # List of Display options for each
 display_names <- c(
-    "Spatial Distribution"      = "map_plot",
     "Abundance Timeline"        = "timeline_plot",
-    "Seasonal Variation"        = "seasonal_spline",
-    "Seasonal Spline Residuals" = "resid_hist",
-    "Anomaly Timeline"          = "anom_plot")
+    "Anomaly Timeline"          = "anom_plot",
+    "Spatial Distribution"      = "map_plot",
+    "Seasonal Variation"        = "seasonal_spline"#,
+    #"Seasonal Spline Residuals" = "resid_hist",
+    )
 
 
 
@@ -288,7 +289,7 @@ anomaly_list <- map(anomaly_list, function(x){
         scale_y_log10(labels = scales::comma_format()) +
         scale_x_date(limits = as.Date(c("1959-01-01", "2020-01-01")), date_labels = "%Y", date_breaks = "5 year") +
         scale_color_manual(values = color_key) +
-        labs(x = NULL, y = "Observed Abundance (individuals / cubic meter)") 
+        labs(x = NULL, y = "Observed Abundance (individuals / 100 cubic meters)") 
 
     return(x)
 
@@ -333,7 +334,7 @@ anomaly_list <- map(anomaly_list, function(x){
         scale_y_log10(labels = scales::comma_format()) +
         scale_x_date(date_labels = "%b", date_breaks = "1 month") +
         scale_color_manual(values = color_key) +
-        labs(x = "", y = "Concentration (# / cubic meter)") +
+        labs(x = "", y = "Concentration (# / 100 cubic meters)") +
         theme(legend.position = "none")
     
     
@@ -400,26 +401,26 @@ anomaly_list$`calanus i-iv`$anom_plot
 
 
 
-####  5. Histogram of residuals  ####
-anomaly_list <- map(anomaly_list, function(x){
-
-    
-    residual_data <- tibble(`Spline Residuals` = x$spline_model$residuals)
-    
-    x$resid_hist <- ggplot(residual_data) +
-        geom_histogram(aes(`Spline Residuals`), bins = 30, fill = gmri_cols("gmri blue")) +
-        geom_vline(xintercept = 0, linetype = 2, color = gmri_cols("orange"), size = 2) +
-        labs(x = "Residuals from Seasonal Average - As Predicted from GAM",
-             y = "Count")
-    
-    return(x)
-    
-    
-})
-
-
-# Tester
-anomaly_list$`calanus i-iv`$resid_hist
+# ####  5. Histogram of residuals  ####
+# anomaly_list <- map(anomaly_list, function(x){
+# 
+#     
+#     residual_data <- tibble(`Spline Residuals` = x$spline_model$residuals)
+#     
+#     x$resid_hist <- ggplot(residual_data) +
+#         geom_histogram(aes(`Spline Residuals`), bins = 30, fill = gmri_cols("gmri blue")) +
+#         geom_vline(xintercept = 0, linetype = 2, color = gmri_cols("orange"), size = 2) +
+#         labs(x = "Residuals from Seasonal Average - As Predicted from GAM",
+#              y = "Count")
+#     
+#     return(x)
+#     
+#     
+# })
+# 
+# 
+# # Tester
+# anomaly_list$`calanus i-iv`$resid_hist
 
 
 ####_________________####

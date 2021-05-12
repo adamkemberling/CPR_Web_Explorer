@@ -1,7 +1,7 @@
 Continuous Plankton Recorder Web Explorer App
 ================
 Adam A. Kemberling
-2020-09-28
+2021-01-06
 
 # About the App
 
@@ -52,5 +52,5 @@ docker image configurations can be found in the `Dockerfile`.
 
 To build and run the docker image run the following in the terminal:
 
-> docker build –tag gmri/bashful-badger:1.0 .  
-> docker run -p 3838:3838 –name cpr gmri/bashful-badger:1.0
+> docker build –tag gmri/bashful-badger:1.2 .  
+> docker run -p 3838:3838 –name cpr gmri/bashful-badger:1.2
